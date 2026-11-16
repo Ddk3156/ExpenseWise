@@ -20,7 +20,7 @@
   <div class="scroll"><table>
     <tr><th>Date</th><th>Description</th><th>Category</th><th>Type</th><th class="r">Amount</th><th></th></tr>
     {% for t in rows %}
-    <tr><td>{{ t.date.strftime('%d %b %Y') }}</td><td>{{ t.description or '—' }}</td><td>{{ t.category }}</td>
+    <tr><td>{{ t.date.strftime('%d %b %Y') }}</td><td>{{ t.description or '—' }}</td><td><span class="dot" style="background:{{ t.category|cat_color }}"></span>{{ t.category }}</td>
       <td><span class="badge {{ t.type }}">{{ t.type }}</span></td>
       <td class="r {{ 'pos' if t.type == 'income' else 'neg' }}">{{ '+' if t.type == 'income' else '−' }}{{ t.amount|inr }}</td>
       <td class="r nowrap"><a class="btn sm" href="{{ url_for('tx_edit', tx_id=t._id) }}">Edit</a>

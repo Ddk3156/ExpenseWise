@@ -1,7 +1,9 @@
-{# Month picker: changing the month reloads the page with ?month=YYYY-MM #}
+{# Month picker with previous / next arrows (shift_month is registered in app.py) #}
 {% macro month_picker(month) %}
-<form method="get" class="inline">
-  <label>Month <input type="month" name="month" value="{{ month }}" onchange="this.form.submit()"></label>
+<form method="get" class="monthnav">
+  <a class="btn icon-btn" href="?month={{ shift_month(month, -1) }}" title="Previous month">‹</a>
+  <input type="month" name="month" value="{{ month }}" onchange="this.form.submit()">
+  <a class="btn icon-btn" href="?month={{ shift_month(month, 1) }}" title="Next month">›</a>
 </form>
 {% endmacro %}
 
@@ -11,17 +13,18 @@
   <div class="between"><b>{{ b.category }}</b>
     <span>{{ b.spent|inr }} / {{ b.budget|inr }} {% if b.status == 'over' %}<span class="tag">OVER</span>{% endif %}</span></div>
   <div class="bar {{ b.status }}"><i style="width: {{ [b.pct, 100]|min }}%"></i></div>
-  <div class="between small"><span>{{ b.pct }}% used</span>
+  <div class="between small muted"><span>{{ b.pct }}% used</span>
     <span>{% if b.remaining < 0 %}Over by {{ (-b.remaining)|inr }}{% else %}{{ b.remaining|inr }} left{% endif %}</span></div>
 </div>
 {% endmacro %}
 
-{# Share bar for category breakdowns #}
+{# Share bars for category breakdowns, with the category's colour dot #}
 {% macro share_rows(rows) %}
 {% for c in rows %}
 <div class="row">
-  <div class="between"><b>{{ c.category }}</b><span>{{ c.total|inr }} · {{ c.share }}%</span></div>
-  <div class="bar"><i style="width: {{ c.share }}%"></i></div>
+  <div class="between"><b><span class="dot" style="background:{{ c.category|cat_color }}"></span>{{ c.category }}</b>
+    <span>{{ c.total|inr }} · {{ c.share }}%</span></div>
+  <div class="bar"><i style="width: {{ c.share }}%; background:{{ c.category|cat_color }}"></i></div>
 </div>
-{% else %}<p class="muted">No data for this month.</p>{% endfor %}
+{% else %}<div class="empty"><span class="big">📭</span>No data for this month.</div>{% endfor %}
 {% endmacro %}

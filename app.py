@@ -27,6 +27,20 @@ def inr(value):
         whole = re.sub(r"(\d)(?=(\d\d)+$)", r"\1,", whole[:-3]) + "," + whole[-3:]
     return f"{sign}₹{whole}" + ("" if dec == "00" else f".{dec}")
 
+CAT_COLORS = {"Food": "#f59e0b", "Rent": "#6366f1", "Transportation": "#0ea5e9", "Shopping": "#ec4899",
+              "Utilities": "#14b8a6", "Healthcare": "#ef4444", "Education": "#8b5cf6", "Entertainment": "#f97316",
+              "Travel": "#10b981", "Other": "#64748b", "Salary": "#16a34a", "Freelancing": "#06b6d4",
+              "Scholarship": "#84cc16", "Business": "#eab308"}
+EXTRA_COLORS = ["#d946ef", "#0891b2", "#ca8a04", "#e11d48", "#7c3aed", "#059669", "#ea580c", "#2563eb"]
+
+
+@app.template_filter("cat_color")
+def cat_color(name):
+    """Every category always gets the same colour (fixed for defaults, hashed for custom ones)."""
+    return CAT_COLORS.get(name) or EXTRA_COLORS[sum(map(ord, name or "")) % len(EXTRA_COLORS)]
+
+
+app.jinja_env.globals["shift_month"] = analytics.add_months   # used by the month arrows
 
 def current_month():
     """Month from ?month=YYYY-MM (or the form), defaulting to this month."""

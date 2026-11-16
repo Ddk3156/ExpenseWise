@@ -1,35 +1,89 @@
 {% extends "base.html" %}
-{% from "_macros.html" import month_picker, budget_bar, share_rows %}
+{% from "_macros.html" import month_picker, budget_bar %}
 {% block content %}
-<div class="between"><h1>Dashboard</h1>{{ month_picker(month) }}</div>
+<div class="between"><h1>{{ month_label(month) }}</h1>{{ month_picker(month) }}</div>
+
+{% if not recent %}
+<div class="card empty"><span class="big">👋</span><b>Welcome to ExpenseWise!</b><br>
+  Add your first transaction to see your dashboard come alive.<br><br>
+  <a class="btn primary" href="{{ url_for('tx_new') }}">+ Add transaction</a></div>
+{% endif %}
 
 <div class="stats">
-  <div class="card stat"><span>Available balance</span><b>{{ balance|inr }}</b></div>
+  <div class="card stat"><span>💼 Available balance</span><b>{{ balance|inr }}</b></div>
   <div class="card stat"><span><a href="{{ url_for('gullak.index') }}">🐷 In Gullak</a></span><b>{{ locked|inr }}</b></div>
-  <div class="card stat inc"><span>Income · {{ month_label(month) }}</span><b>{{ totals.income|inr }}</b></div>
-  <div class="card stat exp"><span>Expenses · {{ month_label(month) }}</span><b>{{ totals.expense|inr }}</b></div>
-  <div class="card stat"><span>Remaining overall budget</span>
+  <div class="card stat inc"><span>⬆ Income</span><b>{{ totals.income|inr }}</b></div>
+  <div class="card stat exp"><span>⬇ Expenses</span><b>{{ totals.expense|inr }}</b></div>
+  <div class="card stat"><span>🎯 Overall budget left</span>
     <b class="{{ 'neg' if remaining is not none and remaining < 0 }}">{{ remaining|inr if remaining is not none else 'Not set' }}</b></div>
 </div>
 
 <div class="grid2">
-  <div class="card"><h3>Where the money went</h3>{{ share_rows(categories) }}</div>
-  <div class="card"><h3>Budget usage</h3>
+  <div class="card"><h3>Spending by category</h3>
+    {% if categories %}
+    <div class="donut-wrap">
+      <div class="chartbox"><canvas id="donut"></canvas></div>
+      <ul class="legend-list">
+        {% for c in categories[:6] %}<li><span class="dot" style="background:{{ c.category|cat_color }}"></span>{{ c.category }}
+          <b>{{ c.total|inr }}</b><em>{{ c.share }}%</em></li>{% endfor %}
+      </ul>
+    </div>
+    {% else %}<div class="empty"><span class="big">🧾</span>No expenses this month yet.</div>{% endif %}
+  </div>
+  <div class="card"><div class="between"><h3>Budget usage</h3><a class="small" href="{{ url_for('budgets', month=month) }}">Manage →</a></div>
     {% for b in budgets %}{{ budget_bar(b) }}{% else %}
-    <p class="muted">No budgets set for this month. <a href="{{ url_for('budgets', month=month) }}">Set one</a>.</p>{% endfor %}
+    <div class="empty"><span class="big">🎯</span>No budgets set for this month.<br><a href="{{ url_for('budgets', month=month) }}">Set one</a></div>{% endfor %}
   </div>
 </div>
 
 <div class="grid2">
-  <div class="card"><h3>Last 6 months</h3>
-    <table><tr><th>Month</th><th class="r">Income</th><th class="r">Expense</th><th class="r">Saved</th></tr>
-    {% for t in trend %}<tr><td>{{ t.label }}</td><td class="r pos">{{ t.income|inr }}</td>
-      <td class="r neg">{{ t.expense|inr }}</td><td class="r">{{ t.savings|inr }}</td></tr>{% endfor %}</table>
-  </div>
-  <div class="card"><h3>Recent transactions</h3>
-    <table>{% for t in recent %}<tr><td>{{ t.date.strftime('%d %b %Y') }}</td><td>{{ t.description or t.category }}</td>
-      <td class="r {{ 'pos' if t.type == 'income' else 'neg' }}">{{ '+' if t.type == 'income' else '−' }}{{ t.amount|inr }}</td></tr>
+  <div class="card"><h3>Income vs expenses · last 6 months</h3><div class="chartbox"><canvas id="bars"></canvas></div></div>
+  <div class="card"><div class="between"><h3>Recent transactions</h3><a class="small" href="{{ url_for('transactions') }}">View all →</a></div>
+    <table>{% for t in recent %}<tr>
+      <td><span class="dot" style="background:{{ t.category|cat_color }}"></span>{{ t.description or t.category }}
+        <div class="muted small">{{ t.category }} · {{ t.date.strftime('%d %b %Y') }}</div></td>
+      <td class="r nowrap {{ 'pos' if t.type == 'income' else 'neg' }}"><b>{{ '+' if t.type == 'income' else '−' }}{{ t.amount|inr }}</b></td></tr>
     {% else %}<tr><td class="muted">No transactions yet.</td></tr>{% endfor %}</table>
   </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const inr = v => "₹" + Number(v).toLocaleString("en-IN", {maximumFractionDigits: 0});
+Chart.defaults.color = css("--muted"); Chart.defaults.borderColor = css("--line");
+Chart.defaults.font.family = "Inter, system-ui, sans-serif";
+
+const cats = {{ categories|tojson }};
+const catColors = {{ categories|map(attribute='category')|map('cat_color')|list|tojson }};
+const trend = {{ trend|tojson }};
+
+if (cats.length) {
+  const total = cats.reduce((s, c) => s + c.total, 0);
+  new Chart(document.getElementById("donut"), {
+    type: "doughnut",
+    data: { labels: cats.map(c => c.category),
+            datasets: [{ data: cats.map(c => c.total), backgroundColor: catColors, borderColor: css("--card"), borderWidth: 3 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: "68%",
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.label}: ${inr(c.parsed)}` } } } },
+    plugins: [{ id: "center", afterDraw(ch) {                      // total in the middle of the ring
+      const { ctx, chartArea: a } = ch, x = (a.left + a.right) / 2, y = (a.top + a.bottom) / 2;
+      ctx.save(); ctx.textAlign = "center";
+      ctx.fillStyle = css("--ink"); ctx.font = "700 20px Inter, system-ui"; ctx.fillText(inr(total), x, y + 2);
+      ctx.fillStyle = css("--muted"); ctx.font = "12px Inter, system-ui"; ctx.fillText("spent", x, y + 22); ctx.restore(); } }]
+  });
+}
+
+new Chart(document.getElementById("bars"), {
+  type: "bar",
+  data: { labels: trend.map(t => { const [y, m] = t.month.split("-");
+            return new Date(y, m - 1, 1).toLocaleString("en", { month: "short" }) + " '" + y.slice(2); }),
+          datasets: [{ label: "Income", data: trend.map(t => t.income), backgroundColor: css("--ok"), borderRadius: 6 },
+                     { label: "Expenses", data: trend.map(t => t.expense), backgroundColor: css("--bad"), borderRadius: 6 }] },
+  options: { responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+    plugins: { legend: { position: "bottom", labels: { usePointStyle: true, boxWidth: 8 } },
+               tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${inr(c.parsed.y)}` } } },
+    scales: { y: { beginAtZero: true, ticks: { callback: v => inr(v) } }, x: { grid: { display: false } } } }
+});
+</script>
 {% endblock %}
