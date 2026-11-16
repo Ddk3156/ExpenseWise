@@ -56,8 +56,5 @@ docs/          REPORT.md (project report) and VIVA_NOTES.md
 Dashboard · Transactions (add / edit / delete / filter / search) · Categories (default + custom) ·
 Budgets (overall + per category, per month) · Report (monthly summary, top categories, comparison)
 
-## 7. Collections
-`transactions {type, amount, category, description, date, created_at, updated_at}` ·
-`categories {name, type, is_default}` · `budgets {month "YYYY-MM", category, amount}`
-=======
+
 
