@@ -1,0 +1,27 @@
+{# Month picker: changing the month reloads the page with ?month=YYYY-MM #}
+{% macro month_picker(month) %}
+<form method="get" class="inline">
+  <label>Month <input type="month" name="month" value="{{ month }}" onchange="this.form.submit()"></label>
+</form>
+{% endmacro %}
+
+{# Progress bar for budgets: green = ok, amber = 80%+, red = over #}
+{% macro budget_bar(b) %}
+<div class="row">
+  <div class="between"><b>{{ b.category }}</b>
+    <span>{{ b.spent|inr }} / {{ b.budget|inr }} {% if b.status == 'over' %}<span class="tag">OVER</span>{% endif %}</span></div>
+  <div class="bar {{ b.status }}"><i style="width: {{ [b.pct, 100]|min }}%"></i></div>
+  <div class="between small"><span>{{ b.pct }}% used</span>
+    <span>{% if b.remaining < 0 %}Over by {{ (-b.remaining)|inr }}{% else %}{{ b.remaining|inr }} left{% endif %}</span></div>
+</div>
+{% endmacro %}
+
+{# Share bar for category breakdowns #}
+{% macro share_rows(rows) %}
+{% for c in rows %}
+<div class="row">
+  <div class="between"><b>{{ c.category }}</b><span>{{ c.total|inr }} · {{ c.share }}%</span></div>
+  <div class="bar"><i style="width: {{ c.share }}%"></i></div>
+</div>
+{% else %}<p class="muted">No data for this month.</p>{% endfor %}
+{% endmacro %}

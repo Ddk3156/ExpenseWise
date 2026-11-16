@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card narrow">
+  <h2>{{ title }}</h2>
+  <form method="post">
+    <label>Category (this also sets income / expense)
+      <select name="category" required>
+        {% for t in ['expense', 'income'] %}
+        <optgroup label="{{ t|title }}">
+          {% for c in categories if c.type == t %}
+          <option value="{{ t }}:{{ c.name }}" {{ 'selected' if f.get('category') == t ~ ':' ~ c.name }}>{{ c.name }}</option>
+          {% endfor %}
+        </optgroup>
+        {% endfor %}
+      </select></label>
+    <label>Amount (₹)<input name="amount" type="number" step="0.01" min="0.01" value="{{ f.get('amount', '') }}" required></label>
+    <label>Description<input name="description" maxlength="200" value="{{ f.get('description', '') }}" placeholder="e.g. Restaurant dinner"></label>
+    <label>Date<input name="date" type="date" value="{{ f.get('date', '') }}" required></label>
+    <div class="actions"><a class="btn" href="{{ url_for('transactions') }}">Cancel</a><button class="btn primary">Save</button></div>
+  </form>
+</div>
+{% endblock %}

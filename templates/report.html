@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% from "_macros.html" import month_picker, share_rows %}
+{% block content %}
+<div class="between"><h1>Monthly report — {{ r.label }}</h1>{{ month_picker(month) }}</div>
+
+<div class="stats">
+  <div class="card stat inc"><span>Total income</span><b>{{ r.totals.income|inr }}</b></div>
+  <div class="card stat exp"><span>Total expenses</span><b>{{ r.totals.expense|inr }}</b>
+    <small>{% if r.expense_change_pct is none %}No data for {{ r.previous_label }}
+      {% else %}{{ '▲' if r.expense_change_pct > 0 else '▼' }} {{ r.expense_change_pct|abs }}% vs {{ r.previous_label }}{% endif %}</small></div>
+  <div class="card stat"><span>Savings</span><b class="{{ 'neg' if r.totals.savings < 0 else 'pos' }}">{{ r.totals.savings|inr }}</b>
+    <small>{% if r.savings_rate is not none %}Savings rate {{ r.savings_rate }}%{% endif %}</small></div>
+  <div class="card stat"><span>Highest spending category</span><b>{{ r.highest.category if r.highest else '—' }}</b>
+    <small>{% if r.highest %}{{ r.highest.total|inr }} ({{ r.highest.share }}% of spending){% endif %}</small></div>
+</div>
+
+<div class="grid2">
+  <div class="card"><h3>Top 3 spending categories</h3>
+    <ol>{% for c in r.top3 %}<li><b>{{ c.category }}</b> — {{ c.total|inr }} ({{ c.share }}%, {{ c.count }} transactions)</li>
+    {% else %}<li class="muted">No expenses this month.</li>{% endfor %}</ol>
+    <p class="muted">Average daily spend: <b>{{ r.avg_daily_spend|inr }}</b><br>
+    {% if r.biggest_expense %}Biggest single expense: <b>{{ r.biggest_expense.amount|inr }}</b>
+      ({{ r.biggest_expense.description or r.biggest_expense.category }}, {{ r.biggest_expense.date.strftime('%d %b') }}){% endif %}</p>
+  </div>
+  <div class="card"><h3>Monthly comparison</h3>
+    <table><tr><th>Month</th><th class="r">Income</th><th class="r">Expense</th><th class="r">Saved</th></tr>
+    {% for t in r.trend %}<tr class="{{ 'hl' if t.month == month }}"><td>{{ t.label }}</td><td class="r pos">{{ t.income|inr }}</td>
+      <td class="r neg">{{ t.expense|inr }}</td><td class="r">{{ t.savings|inr }}</td></tr>{% endfor %}</table></div>
+</div>
+
+<div class="grid2">
+  <div class="card"><h3>Expenditure by category</h3>{{ share_rows(r.category_spend) }}</div>
+  <div class="card"><h3>Income by source</h3>{{ share_rows(r.income_by_category) }}</div>
+</div>
+{% endblock %}

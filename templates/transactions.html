@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Transactions</h1>
+<form method="get" class="card filters">
+  <input type="month" name="month" value="{{ month }}">
+  <label class="check"><input type="checkbox" name="all" value="1" {{ 'checked' if all_months }}> All months</label>
+  <select name="type">
+    <option value="">All types</option>
+    <option value="income" {{ 'selected' if args.get('type') == 'income' }}>Income</option>
+    <option value="expense" {{ 'selected' if args.get('type') == 'expense' }}>Expense</option>
+  </select>
+  <select name="category"><option value="">All categories</option>
+    {% for n in names %}<option {{ 'selected' if args.get('category') == n }}>{{ n }}</option>{% endfor %}</select>
+  <input type="search" name="q" value="{{ args.get('q', '') }}" placeholder="Search description…">
+  <button class="btn primary">Filter</button>
+</form>
+
+<div class="card">
+  <p class="muted">{{ rows|length }} transaction(s) · Income <b class="pos">{{ income|inr }}</b> · Expenses <b class="neg">{{ expense|inr }}</b></p>
+  <div class="scroll"><table>
+    <tr><th>Date</th><th>Description</th><th>Category</th><th>Type</th><th class="r">Amount</th><th></th></tr>
+    {% for t in rows %}
+    <tr><td>{{ t.date.strftime('%d %b %Y') }}</td><td>{{ t.description or '—' }}</td><td>{{ t.category }}</td>
+      <td><span class="badge {{ t.type }}">{{ t.type }}</span></td>
+      <td class="r {{ 'pos' if t.type == 'income' else 'neg' }}">{{ '+' if t.type == 'income' else '−' }}{{ t.amount|inr }}</td>
+      <td class="r nowrap"><a class="btn sm" href="{{ url_for('tx_edit', tx_id=t._id) }}">Edit</a>
+        <form method="post" action="{{ url_for('tx_delete', tx_id=t._id) }}" class="inline" onsubmit="return confirm('Delete this transaction?')">
+          <button class="btn sm danger">Delete</button></form></td></tr>
+    {% else %}<tr><td colspan="6" class="muted center">No transactions match.</td></tr>{% endfor %}
+  </table></div>
+</div>
+{% endblock %}

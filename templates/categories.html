@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Categories</h1>
+<div class="card"><h3>Add a custom category</h3>
+  <form method="post" class="filters">
+    <input name="name" placeholder="Category name" maxlength="50" required>
+    <select name="type"><option value="expense">Expense</option><option value="income">Income</option></select>
+    <button class="btn primary">Add</button>
+  </form></div>
+<div class="grid2">
+  {% for title, rows in [('Expense categories', expense), ('Income categories', income)] %}
+  <div class="card"><h3>{{ title }}</h3>
+    {% for c in rows %}<span class="chip">{{ c.name }}
+      {% if not c.is_default %}<em>custom</em>
+      <form method="post" action="{{ url_for('category_delete', cat_id=c._id) }}" class="inline" onsubmit="return confirm('Delete category?')"><button class="x">×</button></form>{% endif %}
+    </span>{% endfor %}
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

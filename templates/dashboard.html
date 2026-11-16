@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% from "_macros.html" import month_picker, budget_bar, share_rows %}
+{% block content %}
+<div class="between"><h1>Dashboard</h1>{{ month_picker(month) }}</div>
+
+<div class="stats">
+  <div class="card stat"><span>Total balance (all time)</span><b>{{ balance|inr }}</b></div>
+  <div class="card stat inc"><span>Income · {{ month_label(month) }}</span><b>{{ totals.income|inr }}</b></div>
+  <div class="card stat exp"><span>Expenses · {{ month_label(month) }}</span><b>{{ totals.expense|inr }}</b></div>
+  <div class="card stat"><span>Remaining overall budget</span>
+    <b class="{{ 'neg' if remaining is not none and remaining < 0 }}">{{ remaining|inr if remaining is not none else 'Not set' }}</b></div>
+</div>
+
+<div class="grid2">
+  <div class="card"><h3>Where the money went</h3>{{ share_rows(categories) }}</div>
+  <div class="card"><h3>Budget usage</h3>
+    {% for b in budgets %}{{ budget_bar(b) }}{% else %}
+    <p class="muted">No budgets set for this month. <a href="{{ url_for('budgets', month=month) }}">Set one</a>.</p>{% endfor %}
+  </div>
+</div>
+
+<div class="grid2">
+  <div class="card"><h3>Last 6 months</h3>
+    <table><tr><th>Month</th><th class="r">Income</th><th class="r">Expense</th><th class="r">Saved</th></tr>
+    {% for t in trend %}<tr><td>{{ t.label }}</td><td class="r pos">{{ t.income|inr }}</td>
+      <td class="r neg">{{ t.expense|inr }}</td><td class="r">{{ t.savings|inr }}</td></tr>{% endfor %}</table>
+  </div>
+  <div class="card"><h3>Recent transactions</h3>
+    <table>{% for t in recent %}<tr><td>{{ t.date.strftime('%d %b %Y') }}</td><td>{{ t.description or t.category }}</td>
+      <td class="r {{ 'pos' if t.type == 'income' else 'neg' }}">{{ '+' if t.type == 'income' else '−' }}{{ t.amount|inr }}</td></tr>
+    {% else %}<tr><td class="muted">No transactions yet.</td></tr>{% endfor %}</table>
+  </div>
+</div>
+{% endblock %}
