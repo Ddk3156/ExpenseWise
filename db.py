@@ -29,6 +29,15 @@ VALIDATORS = {
         "bsonType": "object",
         "required": ["name", "type"],
         "properties": {"name": {"bsonType": "string"}, "type": {"enum": ["income", "expense"]}}}},
+    "goals": {"$jsonSchema": {
+        "bsonType": "object",
+        "required": ["name"],
+        "properties": {"name": {"bsonType": "string"}, "target": {"bsonType": ["double", "int", "long", "null"]}}}},
+    "gullak_entries": {"$jsonSchema": {
+        "bsonType": "object",
+        "required": ["goal_id", "kind", "amount"],
+        "properties": {"goal_id": {"bsonType": "objectId"}, "kind": {"enum": ["deposit", "withdraw"]},
+                       "amount": {"bsonType": ["double", "int", "long"], "minimum": 0.01}}}},
     "budgets": {"$jsonSchema": {
         "bsonType": "object",
         "required": ["month", "category", "amount"],
@@ -65,6 +74,8 @@ def setup(db):
     db.transactions.create_index([("category", ASCENDING), ("date", DESCENDING)])
     db.categories.create_index([("type", ASCENDING), ("name", ASCENDING)], unique=True)
     db.budgets.create_index([("month", ASCENDING), ("category", ASCENDING)], unique=True)
+    db.goals.create_index([("name", ASCENDING)], unique=True)
+    db.gullak_entries.create_index([("goal_id", ASCENDING), ("date", DESCENDING)])
 
     if db.categories.count_documents({}) == 0:
         now = datetime.utcnow()

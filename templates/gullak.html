@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>🐷 My Gullak</h1>
+
+<div class="stats">
+  <div class="card stat"><span>Available to move</span><b>{{ available|inr }}</b>
+    <small>your savings minus what is already in boxes</small></div>
+  <div class="card stat"><span>Locked in boxes</span><b>{{ locked|inr }}</b></div>
+</div>
+
+<div class="card"><h3>Create a new box</h3>
+  <form method="post" action="{{ url_for('gullak.create') }}" class="filters">
+    <select name="icon">{% for i in icons %}<option>{{ i }}</option>{% endfor %}</select>
+    <input name="name" placeholder="Name, e.g. Goa trip" maxlength="40" required>
+    <input name="target" type="number" step="0.01" min="0.01" placeholder="Target ₹ (optional)">
+    <button class="btn primary">Create box</button>
+  </form></div>
+
+<div class="boxes">
+{% for b in boxes %}
+  <div class="card box {{ 'reached' if b.reached }}">
+    <div class="between"><div><span class="icon">{{ b.icon }}</span> <b style="font-size:1.1rem">{{ b.name }}</b></div>
+      {% if b.reached %}<span class="badge income">Goal reached 🎉</span>{% endif %}</div>
+    <p style="margin:10px 0 2px"><b style="font-size:1.6rem">{{ b.saved|inr }}</b>
+      {% if b.target %}<span class="muted"> of {{ b.target|inr }}</span>{% endif %}</p>
+    {% if b.target %}<div class="bar {{ 'ok' if b.reached }}"><i style="width: {{ [b.pct, 100]|min }}%"></i></div>
+      <p class="muted small">{{ b.pct }}% saved{% if not b.reached %} · {{ (b.target - b.saved)|inr }} to go{% endif %}</p>{% endif %}
+
+    <form method="post" action="{{ url_for('gullak.deposit', gid=b._id) }}" class="filters deposit" data-avail="{{ available }}">
+      <input name="percent" type="number" step="0.1" min="0.1" max="100" placeholder="% of available" style="width:130px">
+      <span class="muted">or</span>
+      <input name="amount" type="number" step="0.01" min="0.01" placeholder="₹ amount" style="width:110px">
+      <button class="btn primary sm">Add</button>
+      <span class="muted small preview"></span>
+    </form>
+
+    {% if b.saved > 0 %}
+    <form method="post" action="{{ url_for('gullak.empty', gid=b._id) }}" class="filters" style="margin-top:10px">
+      <select name="category" title="Expense category used if you spend it">
+        {% for c in expense_cats %}<option {{ 'selected' if c == 'Other' }}>{{ c }}</option>{% endfor %}
+      </select>
+      <button name="mode" value="spend" class="btn sm {{ 'primary' if b.reached }}"
+        onclick="return confirm('Spend {{ b.saved|inr }} on this goal? It will be recorded as an expense.')">Spend it</button>
+      <button name="mode" value="return" class="btn sm"
+        onclick="return confirm('Return the money to your available balance?')">Return to balance</button>
+    </form>
+    {% endif %}
+
+    {% if b.history %}<table style="margin-top:10px">{% for h in b.history %}
+      <tr><td class="small muted">{{ h.date.strftime('%d %b %Y') }}</td>
+        <td class="small">{{ 'Added' if h.kind == 'deposit' else ('Spent' if h.mode == 'spend' else 'Returned') }}
+          {% if h.percent %}({{ h.percent }}%){% endif %}</td>
+        <td class="r small {{ 'pos' if h.kind == 'deposit' else 'neg' }}">{{ '+' if h.kind == 'deposit' else '−' }}{{ h.amount|inr }}</td></tr>
+    {% endfor %}</table>{% endif %}
+
+    <form method="post" action="{{ url_for('gullak.delete', gid=b._id) }}" class="inline" style="margin-top:8px"
+      onsubmit="return confirm('Delete this box?')"><button class="btn sm danger">Delete box</button></form>
+  </div>
+{% else %}
+  <div class="card"><p class="muted">No boxes yet. Create one above - for a trip, a new phone, an investment…</p></div>
+{% endfor %}
+</div>
+
+<script>
+// live preview: "20% = ₹4,500" while typing a percentage
+document.querySelectorAll("form.deposit").forEach(f => {
+  const avail = +f.dataset.avail, pct = f.elements.percent, out = f.querySelector(".preview");
+  pct.addEventListener("input", () => {
+    out.textContent = pct.value ? "= ₹" + (avail * pct.value / 100).toLocaleString("en-IN", {maximumFractionDigits: 2}) : "";
+  });
+});
+</script>
+{% endblock %}

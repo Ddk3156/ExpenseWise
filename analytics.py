@@ -125,3 +125,61 @@ def monthly_report(db, month):
         "income_by_category": category_spend(db, month, "income"),
         "biggest_expense": biggest, "trend": trend(db, month, 6),
     }
+    
+# ---------- timeline + projection (Analytics page) ----------
+def _linear_forecast(values, steps):
+    """Least-squares straight line through `values`, extended `steps` points ahead (never below 0)."""
+    n = len(values)
+    if n == 0:
+        return [0.0] * steps
+    if n == 1:
+        return [round(values[0], 2)] * steps
+    mx, my = (n - 1) / 2, sum(values) / n
+    slope = sum((x - mx) * (y - my) for x, y in enumerate(values)) / sum((x - mx) ** 2 for x in range(n))
+    return [round(max(0.0, my + slope * (n + i - mx)), 2) for i in range(steps)]
+
+
+def timeline(db, n=6, ahead=2):
+    """Monthly totals per category for the last n months + a projection.
+    PIPELINE: $match (date range) -> $group by (year-month, type, category).
+    Completed months are 'actual'; the current month and `ahead` future months are projected."""
+    month = date.today().strftime("%Y-%m")
+    months = [add_months(month, -i) for i in range(n - 1, -1, -1)]
+    future = [add_months(month, i) for i in range(1, ahead + 1)]
+    rows = db.transactions.aggregate([
+        {"$match": {"date": {"$gte": month_range(months[0])[0], "$lt": month_range(month)[1]}}},
+        {"$group": {"_id": {"m": {"$dateToString": {"format": "%Y-%m", "date": "$date"}},
+                            "t": "$type", "c": "$category"},
+                    "total": {"$sum": "$amount"}}},
+    ])
+    by = {}  # (type, category or None for the total) -> {month: amount}
+    for r in rows:
+        m, t, c = r["_id"]["m"], r["_id"]["t"], r["_id"]["c"]
+        for key in ((t, None), (t, c)):
+            by.setdefault(key, {})
+            by[key][m] = by[key].get(m, 0) + r["total"]
+
+    # months before the very first transaction are "no data yet" (None), not zero - zeros would distort the trend
+    has_data = {m for key in by for m in by[key]}
+    first = next((i for i, m in enumerate(months[:-1]) if m in has_data), len(months) - 1)
+
+    def make(key, name, group, default=False):
+        actual = [round(by.get(key, {}).get(m, 0), 2) for m in months[first:-1]]   # completed months with data
+        return {"name": name, "group": group, "default": default,
+                "data": [None] * first + actual + _linear_forecast(actual, 1 + ahead)}
+
+    cats = lambda t: sorted((k for k in by if k[0] == t and k[1]), key=lambda k: -sum(by[k].values()))
+    series = [make(("expense", None), "Total expenses", "totals", True),
+              make(("income", None), "Total income", "totals", True)]
+    series += [make(k, k[1], "expense") for k in cats("expense")]
+    series += [make(k, f"{k[1]} (income)", "income") for k in cats("income")]
+    short = lambda m: f"{calendar.month_abbr[int(m[5:])]} {m[:4]}"
+    return {"labels": [short(m) for m in months + future], "n_actual": n - 1, "series": series}
+
+
+def pace(db):
+    """Current month: spent so far and the full-month estimate at the same daily rate."""
+    today = date.today()
+    days = calendar.monthrange(today.year, today.month)[1]
+    spent = totals(db, today.strftime("%Y-%m"))["expense"]
+    return {"spent": spent, "projected": round(spent / today.day * days, 2), "day": today.day, "days": days}

@@ -4,7 +4,8 @@
 <div class="between"><h1>Dashboard</h1>{{ month_picker(month) }}</div>
 
 <div class="stats">
-  <div class="card stat"><span>Total balance (all time)</span><b>{{ balance|inr }}</b></div>
+  <div class="card stat"><span>Available balance</span><b>{{ balance|inr }}</b></div>
+  <div class="card stat"><span><a href="{{ url_for('gullak.index') }}">🐷 In Gullak</a></span><b>{{ locked|inr }}</b></div>
   <div class="card stat inc"><span>Income · {{ month_label(month) }}</span><b>{{ totals.income|inr }}</b></div>
   <div class="card stat exp"><span>Expenses · {{ month_label(month) }}</span><b>{{ totals.expense|inr }}</b></div>
   <div class="card stat"><span>Remaining overall budget</span>

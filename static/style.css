@@ -36,3 +36,8 @@ form.inline{display:inline;margin:0}.inline label{display:flex;gap:8px;align-ite
 .chip{display:inline-flex;gap:6px;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:99px;padding:4px 12px;margin:0 6px 8px 0}
 .chip em{font-size:.7rem;color:var(--pri)}.x{border:0;background:none;cursor:pointer;color:var(--bad);font-size:1rem}
 hr{border:0;border-top:1px solid var(--line);margin:12px 0}
+.gullak-link{font-size:1.35rem;line-height:1;padding:6px 10px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.gullak-link:hover{background:var(--bg)}
+.boxes{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
+.box.reached{border-color:var(--ok);box-shadow:0 0 0 2px #dcfce7}
+.icon{font-size:1.8rem}

@@ -18,6 +18,7 @@
     <a href="{{ url_for('analytics_page') }}">Analytics</a>
   </nav>
   <a class="btn primary" href="{{ url_for('tx_new') }}">+ Add transaction</a>
+    <a class="gullak-link" href="{{ url_for('gullak.index') }}" title="My Gullak (savings boxes)">🐷</a>
 </header>
 <main>
   {% with msgs = get_flashed_messages(with_categories=true) %}

@@ -9,11 +9,12 @@ from flask import Flask, abort, flash, redirect, render_template, request, url_f
 from pymongo.errors import DuplicateKeyError
 
 import analytics
+import gullak
 from db import get_db
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "dev-only-change-me")
-
+app.register_blueprint(gullak.bp) 
 
 # ---------------- helpers ----------------
 @app.template_filter("inr")
