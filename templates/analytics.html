@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="between">
+  <h1>Analytics &amp; projection</h1>
+  <form method="get" class="inline"><label>Show
+    <select name="months" onchange="this.form.submit()">
+      <option value="6" {{ 'selected' if n == 6 }}>last 6 months</option>
+      <option value="12" {{ 'selected' if n == 12 }}>last 12 months</option>
+    </select></label></form>
+</div>
+
+<div class="stats">
+  <div class="card stat"><span>Spent so far this month (day {{ pace.day }} of {{ pace.days }})</span><b>{{ pace.spent|inr }}</b></div>
+  <div class="card stat"><span>On pace to spend by month end</span><b>{{ pace.projected|inr }}</b>
+    <small>at today's daily rate</small></div>
+</div>
+
+<div class="grid2" style="grid-template-columns:260px 1fr">
+  <div class="card">
+    <h3>Show on graph</h3>
+    <p class="small"><a href="#" id="selAll">Select all</a> · <a href="#" id="selNone">Clear</a></p>
+    <div id="legend"></div>
+  </div>
+  <div class="card">
+    <div style="height:420px"><canvas id="timeline"></canvas></div>
+    <p class="muted small">Solid line = actual completed months. Dashed line = projection (straight-line trend fitted
+      on the completed months). The current month is shown as a projected full-month estimate.</p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+const data = {{ data|tojson }};
+const COLORS = ["#16a34a","#dc2626","#4f46e5","#f59e0b","#0ea5e9","#a855f7","#14b8a6","#f97316","#64748b","#ec4899",
+                "#84cc16","#e11d48","#0891b2","#7c3aed","#ca8a04","#475569"];
+const inr = v => "₹" + Number(v).toLocaleString("en-IN");
+
+const chart = new Chart(document.getElementById("timeline"), {
+  type: "line",
+  data: {
+    labels: data.labels,
+    datasets: data.series.map((s, i) => ({
+      label: s.name, data: s.data, hidden: !s.default,
+      borderColor: COLORS[i % COLORS.length], backgroundColor: COLORS[i % COLORS.length],
+      tension: 0.25, pointRadius: 3,
+      segment: { borderDash: c => (c.p1DataIndex >= data.n_actual ? [6, 6] : undefined) }
+    }))
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${inr(c.parsed.y)}${c.dataIndex >= data.n_actual ? " (projected)" : ""}` } }
+    },
+    scales: { y: { beginAtZero: true, ticks: { callback: v => inr(v) } } }
+  }
+});
+
+// Checkbox legend, grouped
+const titles = { totals: "Totals", expense: "Expense categories", income: "Income categories" };
+const box = document.getElementById("legend");
+["totals", "expense", "income"].forEach(g => {
+  const items = data.series.map((s, i) => [s, i]).filter(([s]) => s.group === g);
+  if (!items.length) return;
+  box.insertAdjacentHTML("beforeend", `<p class="muted small" style="margin:10px 0 4px"><b>${titles[g]}</b></p>`);
+  items.forEach(([s, i]) => box.insertAdjacentHTML("beforeend",
+    `<label class="check" style="margin-bottom:6px"><input type="checkbox" data-i="${i}" ${s.default ? "checked" : ""}>
+       <span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${COLORS[i % COLORS.length]}"></span> ${s.name}</label>`));
+});
+box.addEventListener("change", e => {
+  chart.setDatasetVisibility(+e.target.dataset.i, e.target.checked); chart.update();
+});
+function setAll(on) {
+  box.querySelectorAll("input").forEach(cb => { cb.checked = on; chart.setDatasetVisibility(+cb.dataset.i, on); });
+  chart.update();
+}
+document.getElementById("selAll").onclick = e => { e.preventDefault(); setAll(true); };
+document.getElementById("selNone").onclick = e => { e.preventDefault(); setAll(false); };
+</script>
+{% endblock %}
