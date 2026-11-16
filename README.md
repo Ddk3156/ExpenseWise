@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # ExpenseWise – Personal Expense & Budget Management System
 
 Python (Flask) + **MongoDB** (PyMongo). Server-rendered HTML pages (Jinja2), no JavaScript framework.
@@ -61,5 +60,4 @@ Budgets (overall + per category, per month) · Report (monthly summary, top cate
 `transactions {type, amount, category, description, date, created_at, updated_at}` ·
 `categories {name, type, is_default}` · `budgets {month "YYYY-MM", category, amount}`
 =======
-# ExpenseWise
->>>>>>> 015d213e703160fe65b8d9cd215ea70800f818fd
+
