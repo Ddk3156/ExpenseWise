@@ -242,6 +242,12 @@ def report():
     month = current_month()
     return render_template("report.html", month=month, r=analytics.monthly_report(get_db(), month))
 
+# ---------------- analytics: timeline + projection ----------------
+@app.get("/analytics")
+def analytics_page():
+    n = 12 if request.args.get("months") == "12" else 6
+    db = get_db()
+    return render_template("analytics.html", n=n, data=analytics.timeline(db, n), pace=analytics.pace(db))
 
 @app.errorhandler(404)
 def not_found(_):
